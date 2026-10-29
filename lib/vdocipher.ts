@@ -1,4 +1,4 @@
-export async function generateVdoCipherOtp(discordUsername: string) {
+export async function generateVdoCipherOtp(discordUsername: string, videoId: string) {
   const annotate = JSON.stringify([
     {
       type: "rtext",
@@ -12,7 +12,7 @@ export async function generateVdoCipherOtp(discordUsername: string) {
   ]);
 
   const response = await fetch(
-    `https://dev.vdocipher.com/api/videos/${process.env.VDOCIPHER_VIDEO_ID}/otp`,
+    `https://dev.vdocipher.com/api/videos/${videoId}/otp`,
     {
       method: "POST",
       headers: {

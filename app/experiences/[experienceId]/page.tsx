@@ -10,20 +10,21 @@ export default async function ExperiencePage({
   const { experienceId } = await params;
   const { userId } = await whopsdk.verifyUserToken(await headers());
 
-  // Get the user
-  const user = await whopsdk.users.retrieve(userId);
+  // Get the user with any type to access extra fields
+  const user = await whopsdk.users.retrieve(userId) as any;
 
-  // Try to get Discord username
+  // Look for Discord in social links or other fields
   let discordUsername = user.username || "Unknown";
-  try {
-    const socials = await (whopsdk as any).socialAccounts?.list?.({ user_id: userId, platform: "discord" });
-    if (socials?.data?.[0]?.username) {
-      discordUsername = socials.data[0].username;
-    }
-  } catch (e) {
-    // Fall back to Whop username if Discord lookup fails
-    console.log("Could not fetch Discord username");
+
+  if (user.social_links) {
+    const discord = user.social_links.find((link: any) => 
+      link.website === "discord" || link.platform === "discord" || link.url?.includes("discord")
+    );
+    if (discord?.username) discordUsername = discord.username;
   }
+
+  // Alternative: check if Discord username is stored elsewhere
+  if (user.discord_username) discordUsername = user.discord_username;
 
   const { otp, playbackInfo } = await generateVdoCipherOtp(discordUsername);
 

@@ -11,7 +11,7 @@ export default async function ExperiencePage({
   const { userId } = await whopsdk.verifyUserToken(await headers());
 
   // Access check removed for now so the build succeeds
-  const user = await whopsdk.users.retrieve({ id: userId });
+  const user = await whopsdk.users.retrieve(userId);
   const discordAccount = user.social_links?.find(
     (link: any) => link.website === "discord" || link.url?.includes("discord")
   );

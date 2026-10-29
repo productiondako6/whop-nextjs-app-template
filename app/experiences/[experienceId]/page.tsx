@@ -13,12 +13,17 @@ export default async function ExperiencePage({
   // Get the user
   const user = await whopsdk.users.retrieve(userId);
 
-  // Try to get Discord username (cast to any to avoid the type error)
-  const socialLinks = (user as any).social_links || [];
-  const discordAccount = socialLinks.find(
-    (link: any) => link.website === "discord" || link.url?.includes("discord")
-  );
-  const discordUsername = discordAccount?.username || user.username || "Unknown";
+  // Try to get Discord username
+  let discordUsername = user.username || "Unknown";
+  try {
+    const socials = await (whopsdk as any).socialAccounts?.list?.({ user_id: userId, platform: "discord" });
+    if (socials?.data?.[0]?.username) {
+      discordUsername = socials.data[0].username;
+    }
+  } catch (e) {
+    // Fall back to Whop username if Discord lookup fails
+    console.log("Could not fetch Discord username");
+  }
 
   const { otp, playbackInfo } = await generateVdoCipherOtp(discordUsername);
 

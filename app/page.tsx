@@ -1,31 +1,50 @@
-import { Button } from "@whop/react/components";
-import Link from "next/link";
+import { headers } from "next/headers";
+import { whopsdk } from "@/lib/whop-sdk";
+import { generateVdoCipherOtp } from "@/lib/vdocipher";
 
-export default function Page() {
-	return (
-		<div className="py-12 px-4 sm:px-6 lg:px-8">
-			<div className="max-w-2xl mx-auto rounded-3xl bg-gray-a2 p-4 border border-gray-a4">
-				<div className="text-center mt-8 mb-12">
-					<h1 className="text-8 font-bold text-gray-12 mb-4">
-						Welcome to Your Whop App
-					</h1>
-					<p className="text-4 text-gray-10">
-						Learn how to build your application on our docs
-					</p>
-				</div>
+export default async function ExperiencePage({
+  params,
+}: {
+  params: Promise<{ experienceId: string }>;
+}) {
+  const { experienceId } = await params;
+  const { userId } = await whopsdk.verifyUserToken(await headers());
 
-				<div className="justify-center flex w-full">
-					<Link
-						href="https://docs.whop.com/apps"
-						className="w-full"
-						target="_blank"
-					>
-						<Button variant="classic" className="w-full" size="4">
-							Developer Docs
-						</Button>
-					</Link>
-				</div>
-			</div>
-		</div>
-	);
+  const access = await whopsdk.users.checkAccess({
+    id: userId,
+    resource_id: experienceId,
+  });
+
+  if (!access.has_access) {
+    return <div>You need an active membership to watch this.</div>;
+  }
+
+  const user = await whopsdk.users.retrieve({ id: userId });
+  const discordAccount = user.social_links?.find(
+    (link: any) => link.website === "discord" || link.url?.includes("discord")
+  );
+  const discordUsername = discordAccount?.username || user.username || "Unknown";
+
+  const { otp, playbackInfo } = await generateVdoCipherOtp(discordUsername);
+
+  return (
+    <div style={{ width: "100%", maxWidth: "800px", margin: "0 auto", padding: "20px" }}>
+      <h2>Watching as: {discordUsername}</h2>
+      <div style={{ paddingTop: "56.25%", position: "relative" }}>
+        <iframe
+          src={`https://player.vdocipher.com/v2/?otp=${otp}&playbackInfo=${playbackInfo}`}
+          style={{
+            border: 0,
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+          }}
+          allow="encrypted-media"
+          allowFullScreen
+        />
+      </div>
+    </div>
+  );
 }

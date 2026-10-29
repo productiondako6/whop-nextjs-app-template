@@ -2,49 +2,70 @@ import { headers } from "next/headers";
 import { whopsdk } from "@/lib/whop-sdk";
 import { generateVdoCipherOtp } from "@/lib/vdocipher";
 
+const videos = [
+  { id: "6bdd4eb7c3d9403b82d691891fe9fd2d", title: "Faye! (God of War)" },
+  { id: "5a75bb58f9774fd398767e38c7a2d10b", title: "Night Stalker" },
+  { id: "4462579597784f638cb50044aadf6894", title: "Up The Ladder" },
+];
+
 export default async function ExperiencePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ experienceId: string }>;
+  searchParams: Promise<{ video?: string }>;
 }) {
   const { experienceId } = await params;
+  const { video } = await searchParams;
   const { userId } = await whopsdk.verifyUserToken(await headers());
 
-  // Get the user with any type to access extra fields
-  const user = await whopsdk.users.retrieve(userId) as any;
+  const user = await whopsdk.users.retrieve(userId);
+  const discordUsername = user.username || "Unknown";
 
-  // Look for Discord in social links or other fields
-  let discordUsername = user.username || "Unknown";
+  if (video) {
+    const selected = videos.find((v) => v.id === video);
+    if (!selected) return <div>Video not found</div>;
 
-  if (user.social_links) {
-    const discord = user.social_links.find((link: any) => 
-      link.website === "discord" || link.platform === "discord" || link.url?.includes("discord")
+    const { otp, playbackInfo } = await generateVdoCipherOtp(discordUsername, selected.id);
+
+    return (
+      <div style={{ width: "100%", maxWidth: "800px", margin: "0 auto", padding: "20px" }}>
+        <a href="?" style={{ display: "inline-block", marginBottom: "16px" }}>← Back to videos</a>
+        <h2>{selected.title}</h2>
+        <p>Watching as: {discordUsername}</p>
+        <div style={{ paddingTop: "56.25%", position: "relative" }}>
+          <iframe
+            src={`https://player.vdocipher.com/v2/?otp=${otp}&playbackInfo=${playbackInfo}`}
+            style={{ border: 0, position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
+            allow="encrypted-media"
+            allowFullScreen
+          />
+        </div>
+      </div>
     );
-    if (discord?.username) discordUsername = discord.username;
   }
 
-  // Alternative: check if Discord username is stored elsewhere
-  if (user.discord_username) discordUsername = user.discord_username;
-
-  const { otp, playbackInfo } = await generateVdoCipherOtp(discordUsername);
-
   return (
-    <div style={{ width: "100%", maxWidth: "800px", margin: "0 auto", padding: "20px" }}>
-      <h2>Watching as: {discordUsername}</h2>
-      <div style={{ paddingTop: "56.25%", position: "relative" }}>
-        <iframe
-          src={`https://player.vdocipher.com/v2/?otp=${otp}&playbackInfo=${playbackInfo}`}
-          style={{
-            border: 0,
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-          }}
-          allow="encrypted-media"
-          allowFullScreen
-        />
+    <div style={{ maxWidth: "800px", margin: "0 auto", padding: "20px" }}>
+      <h1>Videos</h1>
+      <p>Watching as: {discordUsername}</p>
+      <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "20px" }}>
+        {videos.map((v) => (
+          <a
+            key={v.id}
+            href={`?video=${v.id}`}
+            style={{
+              display: "block",
+              padding: "16px",
+              border: "1px solid #ddd",
+              borderRadius: "8px",
+              textDecoration: "none",
+              color: "inherit",
+            }}
+          >
+            {v.title}
+          </a>
+        ))}
       </div>
     </div>
   );

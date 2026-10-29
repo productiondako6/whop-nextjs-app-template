@@ -10,9 +10,15 @@ export default async function ExperiencePage({
   const { experienceId } = await params;
   const { userId } = await whopsdk.verifyUserToken(await headers());
 
-  // Use Whop username for now (Discord lookup can be added later)
+  // Get the user
   const user = await whopsdk.users.retrieve(userId);
-  const discordUsername = user.username || "Unknown";
+
+  // Try to get Discord username (cast to any to avoid the type error)
+  const socialLinks = (user as any).social_links || [];
+  const discordAccount = socialLinks.find(
+    (link: any) => link.website === "discord" || link.url?.includes("discord")
+  );
+  const discordUsername = discordAccount?.username || user.username || "Unknown";
 
   const { otp, playbackInfo } = await generateVdoCipherOtp(discordUsername);
 

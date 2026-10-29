@@ -10,10 +10,8 @@ export default async function ExperiencePage({
   const { experienceId } = await params;
   const { userId } = await whopsdk.verifyUserToken(await headers());
 
-  const access = await whopsdk.users.checkAccess({
-    id: userId,
-    resource_id: experienceId,
-  });
+  // Simple access check (avoids the type error)
+  const access = await whopsdk.users.checkAccess(userId, experienceId);
 
   if (!access.has_access) {
     return <div>You need an active membership to watch this.</div>;
